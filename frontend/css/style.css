@@ -632,6 +632,120 @@ a:hover {
 }
 
 /* -----------------------------------------------------------------------------
+   Lifts Table — Filter Row, Small Button, Name Cell, Muscle Pills
+   ----------------------------------------------------------------------------- */
+.table-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.input-search {
+  flex: 1;
+  min-width: 10rem;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: var(--parchment-dark);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.7rem;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.input-search::placeholder {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.input-search:focus {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px rgba(139, 105, 20, 0.14);
+  background: var(--parchment);
+}
+
+/* A compact variant of .btn-danger used for delete buttons inside table cells */
+.btn-small {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+/* Lift name cell — positions the display span and hidden input together */
+.lift-name-cell {
+  position: relative;
+}
+
+.lift-name-display {
+  cursor: text;
+  display: inline-block;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--transition);
+}
+
+.lift-name-display:hover {
+  border-bottom-color: var(--accent-gold-light);
+}
+
+/* Muscle group pills (display-only) */
+.muscle-pill {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.18rem 0.6rem;
+  margin: 0.1rem 0.25rem 0.1rem 0;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+/* Conflict pill — reuses the conflict-tag shape for the settings dialog */
+.conflict-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.25rem 0.65rem 0.25rem 0.75rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.conflict-delete-btn {
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.65;
+  transition: color var(--transition), opacity var(--transition);
+}
+
+.conflict-delete-btn:hover {
+  color: var(--accent-red);
+  opacity: 1;
+}
+
+/* -----------------------------------------------------------------------------
    Inline Editable Fields (inputs used in workout editor, etc.)
    ----------------------------------------------------------------------------- */
 .editable-field {

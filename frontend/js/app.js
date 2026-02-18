@@ -1,5 +1,5 @@
 import { initHome, refreshHome } from './home.js';
-import { initLifts } from './lifts.js';
+import { initLifts, refreshLifts } from './lifts.js';
 import { initWorkouts } from './workouts.js';
 import { api } from './api.js';
 
@@ -225,5 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initHome();
   registerTabRefresh('home', refreshHome);
   initLifts();
+  registerTabRefresh('lifts', refreshLifts);
   initWorkouts();
 });
