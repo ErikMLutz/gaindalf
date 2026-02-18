@@ -4,6 +4,7 @@ import { debounce, formatDate, showSaved } from './utils.js';
 let liftChart = null;       // Chart.js instance, destroyed/recreated on each lift selection
 let allLifts = [];           // [{id, name, muscle_group_ids}]
 let muscleGroupMap = {};     // {id: name}
+let selectedLiftId = null;  // currently charted lift
 
 // ---------------------------------------------------------------------------
 // Data loading
@@ -177,6 +178,32 @@ async function renderLiftChart(liftId) {
 }
 
 // ---------------------------------------------------------------------------
+// Lift selection (chart + row highlight)
+// ---------------------------------------------------------------------------
+
+function selectLiftForChart(liftId, liftName) {
+  selectedLiftId = liftId;
+
+  // Highlight the selected row, clear any previous selection
+  document.querySelectorAll('.lifts-table tr.selected-lift-row').forEach((r) => {
+    r.classList.remove('selected-lift-row');
+  });
+  const tr = document.querySelector(`.lifts-table tr[data-lift-id="${liftId}"]`);
+  if (tr) tr.classList.add('selected-lift-row');
+
+  // Sync the search input
+  const selectInput = document.getElementById('lift-select-input');
+  if (selectInput) selectInput.value = liftName;
+
+  // Render the chart
+  renderLiftChart(liftId);
+
+  // Scroll the chart into view
+  const chartWrap = document.querySelector('#tab-lifts .chart-wrap');
+  if (chartWrap) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ---------------------------------------------------------------------------
 // Lifts table
 // ---------------------------------------------------------------------------
 
@@ -263,8 +290,10 @@ function buildLiftRow(lift) {
   nameTd.appendChild(nameDisplay);
   nameTd.appendChild(nameInput);
 
-  // Click on display span → switch to edit mode
-  nameDisplay.addEventListener('click', () => {
+  // Double-click on display span → switch to edit mode
+  nameDisplay.title = 'Double-click to edit';
+  nameDisplay.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
     nameDisplay.style.display = 'none';
     nameInput.style.display = '';
     nameInput.focus();
@@ -322,6 +351,12 @@ function buildLiftRow(lift) {
     }
   });
   deleteTd.appendChild(deleteBtn);
+
+  // Single click on row → select lift for chart
+  tr.addEventListener('click', (e) => {
+    if (e.target.closest('.delete-lift-btn') || e.target === nameInput) return;
+    selectLiftForChart(lift.id, lift.name);
+  });
 
   tr.appendChild(nameTd);
   tr.appendChild(groupsTd);
@@ -401,7 +436,7 @@ export async function initLifts() {
       const name = selectInput.value.trim();
       const lift = allLifts.find((l) => l.name === name);
       if (lift) {
-        renderLiftChart(lift.id);
+        selectLiftForChart(lift.id, lift.name);
       }
     });
   }
@@ -412,13 +447,13 @@ export async function refreshLifts() {
   populateDatalist();
   await renderLiftsTable();
 
-  // If a lift is currently selected in the search input, re-render its chart
-  const selectInput = document.getElementById('lift-select-input');
-  if (selectInput && selectInput.value.trim()) {
-    const name = selectInput.value.trim();
-    const lift = allLifts.find((l) => l.name === name);
+  // Re-apply selected row highlight and chart after table rebuild
+  if (selectedLiftId) {
+    const lift = allLifts.find((l) => l.id === selectedLiftId);
     if (lift) {
-      renderLiftChart(lift.id);
+      const tr = document.querySelector(`.lifts-table tr[data-lift-id="${selectedLiftId}"]`);
+      if (tr) tr.classList.add('selected-lift-row');
+      renderLiftChart(selectedLiftId);
     }
   }
 }

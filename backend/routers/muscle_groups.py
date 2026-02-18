@@ -17,12 +17,12 @@ class MuscleGroupRead(SQLModel):
     name: str
 
 
-@router.get("/", response_model=list[MuscleGroupRead])
+@router.get("", response_model=list[MuscleGroupRead])
 def list_muscle_groups(session: SessionDep):
     return session.exec(select(MuscleGroup)).all()
 
 
-@router.post("/", response_model=MuscleGroupRead, status_code=201)
+@router.post("", response_model=MuscleGroupRead, status_code=201)
 def create_muscle_group(body: MuscleGroupRead, session: SessionDep):
     muscle_group = MuscleGroup(name=body.name)
     session.add(muscle_group)

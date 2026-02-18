@@ -42,7 +42,7 @@ def _verify_muscle_groups_exist(session: Session, muscle_group_ids: list[int]) -
             )
 
 
-@router.get("/", response_model=list[LiftRead])
+@router.get("", response_model=list[LiftRead])
 def list_lifts(session: SessionDep):
     lifts = session.exec(select(Lift)).all()
     return [
@@ -55,7 +55,7 @@ def list_lifts(session: SessionDep):
     ]
 
 
-@router.post("/", response_model=LiftRead, status_code=201)
+@router.post("", response_model=LiftRead, status_code=201)
 def create_lift(body: LiftCreate, session: SessionDep):
     _verify_muscle_groups_exist(session, body.muscle_group_ids)
 

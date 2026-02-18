@@ -621,9 +621,23 @@ a:hover {
   background-color: rgba(232, 213, 176, 0.4);
 }
 
+.lifts-table tbody tr {
+  cursor: pointer;
+}
+
 .lifts-table tr:hover td {
   background-color: rgba(196, 165, 90, 0.12);
   color: var(--ink);
+}
+
+.lifts-table tr.selected-lift-row td,
+.lifts-table tr.selected-lift-row:nth-child(even) td {
+  background-color: rgba(139, 105, 20, 0.2);
+  color: var(--ink);
+}
+
+.lifts-table tr.selected-lift-row td:first-child {
+  border-left: 3px solid var(--accent-gold);
 }
 
 .lifts-table td:first-child {
@@ -680,7 +694,7 @@ a:hover {
 }
 
 .lift-name-display {
-  cursor: text;
+  cursor: default;
   display: inline-block;
   border-bottom: 1px dashed transparent;
   transition: border-color var(--transition);

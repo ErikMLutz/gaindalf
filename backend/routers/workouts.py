@@ -134,7 +134,7 @@ def _delete_workout_lift_cascade(wl: WorkoutLift, session: Session) -> None:
 # ---------------------------------------------------------------------------
 
 
-@router.get("/", response_model=list[WorkoutSummary])
+@router.get("", response_model=list[WorkoutSummary])
 def list_workouts(session: SessionDep):
     workouts = session.exec(select(Workout).order_by(Workout.date.desc())).all()
     result: list[WorkoutSummary] = []
@@ -158,7 +158,7 @@ def list_workouts(session: SessionDep):
     return result
 
 
-@router.post("/", response_model=WorkoutRead, status_code=201)
+@router.post("", response_model=WorkoutRead, status_code=201)
 def create_workout(session: SessionDep):
     workout = Workout(date=date.today(), subtitle="")
     session.add(workout)
