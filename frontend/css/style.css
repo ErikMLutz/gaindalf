@@ -969,6 +969,32 @@ a:hover {
   margin-top: 0.5rem;
 }
 
+/* Manual lift-add row inside workout footer */
+.add-lift-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.add-lift-input {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.65rem;
+  width: 13rem;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.add-lift-input:focus {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px rgba(139, 105, 20, 0.12);
+}
+
 /* Workout footer — action buttons at the bottom */
 .workout-footer {
   display: flex;

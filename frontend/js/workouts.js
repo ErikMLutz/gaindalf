@@ -90,8 +90,25 @@ function renderWorkout(workout) {
 
   subtitleInput.addEventListener('input', debouncedSubtitleSave);
 
+  const deleteWorkoutBtn = document.createElement('button');
+  deleteWorkoutBtn.className = 'btn-danger btn-small';
+  deleteWorkoutBtn.title = 'Delete workout';
+  deleteWorkoutBtn.textContent = '\u2715';
+  deleteWorkoutBtn.addEventListener('click', async () => {
+    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    try {
+      await api.deleteWorkout(workout.id);
+      currentWorkoutId = null;
+      await initWorkoutsTab();
+    } catch (err) {
+      console.error('Failed to delete workout:', err);
+      alert('Could not delete workout.');
+    }
+  });
+
   header.appendChild(dateSpan);
   header.appendChild(subtitleInput);
+  header.appendChild(deleteWorkoutBtn);
   editor.appendChild(header);
 
   // --- Lift cards container ---
@@ -116,6 +133,50 @@ function renderWorkout(workout) {
   autoMagicBtn.textContent = '\u2726 Auto Magic Add';
   autoMagicBtn.addEventListener('click', handleAutoMagicAdd);
 
+  // Manual lift-add row
+  const addLiftWrap = document.createElement('div');
+  addLiftWrap.className = 'add-lift-wrap';
+
+  const addLiftDatalist = document.createElement('datalist');
+  addLiftDatalist.id = 'workout-lifts-datalist';
+  allLifts.forEach((lift) => {
+    const opt = document.createElement('option');
+    opt.value = lift.name;
+    addLiftDatalist.appendChild(opt);
+  });
+
+  const addLiftInput = document.createElement('input');
+  addLiftInput.className = 'add-lift-input';
+  addLiftInput.type = 'text';
+  addLiftInput.placeholder = 'Add a lift\u2026';
+  addLiftInput.setAttribute('list', 'workout-lifts-datalist');
+  addLiftInput.setAttribute('autocomplete', 'off');
+
+  const addLiftConfirmBtn = document.createElement('button');
+  addLiftConfirmBtn.className = 'btn-secondary';
+  addLiftConfirmBtn.textContent = 'Add';
+
+  const doAddLift = async () => {
+    const name = addLiftInput.value.trim();
+    const lift = allLifts.find((l) => l.name.toLowerCase() === name.toLowerCase());
+    if (!lift) return;
+    try {
+      await api.addLiftToWorkout(currentWorkoutId, { liftId: lift.id, displayOrder: 0 });
+      await loadWorkout(currentWorkoutId);
+    } catch (err) {
+      console.error('Failed to add lift:', err);
+    }
+  };
+
+  addLiftConfirmBtn.addEventListener('click', doAddLift);
+  addLiftInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); doAddLift(); }
+  });
+
+  addLiftWrap.appendChild(addLiftDatalist);
+  addLiftWrap.appendChild(addLiftInput);
+  addLiftWrap.appendChild(addLiftConfirmBtn);
+
   const newWorkoutBtn = document.createElement('button');
   newWorkoutBtn.className = 'btn-secondary';
   newWorkoutBtn.id = 'new-workout-btn';
@@ -130,6 +191,7 @@ function renderWorkout(workout) {
   });
 
   footer.appendChild(autoMagicBtn);
+  footer.appendChild(addLiftWrap);
   footer.appendChild(newWorkoutBtn);
   editor.appendChild(footer);
 }

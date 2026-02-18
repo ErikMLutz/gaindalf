@@ -53,6 +53,11 @@ async function renderLiftChart(liftId) {
   const canvas = document.getElementById('lift-chart');
   if (!canvas) return;
 
+  // Show canvas, hide placeholder hint
+  const hint = document.getElementById('lift-chart-hint');
+  canvas.style.display = '';
+  if (hint) hint.style.display = 'none';
+
   // Destroy existing chart before recreating
   if (liftChart) {
     liftChart.destroy();
@@ -382,6 +387,12 @@ export async function initLifts() {
   await loadLiftsData();
   populateDatalist();
   renderLiftsTable();
+
+  // Hide the chart canvas until a lift is selected; show the hint
+  const canvas = document.getElementById('lift-chart');
+  const hint = document.getElementById('lift-chart-hint');
+  if (canvas) canvas.style.display = 'none';
+  if (hint) hint.style.display = '';
 
   // Lift selector change handler
   const selectInput = document.getElementById('lift-select-input');

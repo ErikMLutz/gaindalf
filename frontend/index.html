@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
 
@@ -68,6 +69,7 @@
         </div>
         <div class="chart-wrap">
           <canvas id="lift-chart" aria-label="Lift progression chart"></canvas>
+          <p id="lift-chart-hint" class="empty-state">Select a lift above to view its history.</p>
         </div>
       </div>
 
