@@ -226,3 +226,40 @@ def remove_lift_from_workout(id: int, wl_id: int, session: SessionDep):
     if wl is None or wl.workout_id != id:
         raise HTTPException(status_code=404, detail="WorkoutLift not found")
     _delete_workout_lift_cascade(wl, session)
+
+
+# ---------------------------------------------------------------------------
+# Suggest endpoint
+# ---------------------------------------------------------------------------
+
+from backend.services.algorithm import suggest_lift  # noqa: E402
+
+
+class SuggestResponse(SQLModel):
+    muscle_group_id: int
+    muscle_group_name: str
+    lift_id: int
+    lift_name: str
+    previous_sets: list[SetRead]
+
+
+@router.post("/{workout_id}/suggest", response_model=SuggestResponse, status_code=200)
+def suggest_lift_for_workout(workout_id: int, session: SessionDep):
+    if session.get(Workout, workout_id) is None:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    result = suggest_lift(workout_id, session)
+    return SuggestResponse(
+        muscle_group_id=result.muscle_group_id,
+        muscle_group_name=result.muscle_group_name,
+        lift_id=result.lift_id,
+        lift_name=result.lift_name,
+        previous_sets=[
+            SetRead(
+                id=s.id if s.id is not None else s.set_number,
+                set_number=s.set_number,
+                reps=s.reps,
+                weight=s.weight,
+            )
+            for s in result.previous_sets
+        ],
+    )
