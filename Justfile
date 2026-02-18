@@ -2,7 +2,11 @@ serve:
     uv run uvicorn backend.main:app --reload --port 8000
 
 test:
+    #!/usr/bin/env bash
     uv run pytest
+    EXIT=$?
+    # exit code 5 = no tests collected (acceptable during scaffolding)
+    [ $EXIT -eq 5 ] && exit 0 || exit $EXIT
 
 lint:
     uv run ruff check .
