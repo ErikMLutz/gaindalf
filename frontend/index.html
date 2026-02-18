@@ -1,1 +1,134 @@
-<\!DOCTYPE html><html><head><title>Gaindalf</title></head><body><h1>Gaindalf</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gaindalf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <h1 class="site-title">&#10022; Gaindalf &#10022;</h1>
+      <nav class="tab-nav" role="navigation" aria-label="Main navigation">
+        <button class="tab-btn active" data-tab="home">Home</button>
+        <button class="tab-btn" data-tab="lifts">Lifts</button>
+        <button class="tab-btn" data-tab="workouts">Workouts</button>
+      </nav>
+      <button class="icon-btn" id="settings-btn" title="Settings" aria-label="Open settings">&#9881;</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- HOME TAB -->
+    <section id="tab-home" class="tab-panel active" role="tabpanel" aria-label="Home">
+
+      <div class="panel-section">
+        <h2 class="section-heading">Progress</h2>
+        <div class="chart-wrap">
+          <canvas id="progress-chart" aria-label="Progress chart"></canvas>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-heading-row">
+          <h2 class="section-heading">Workout History</h2>
+          <button class="btn-primary" id="new-workout-home-btn">&#10022; New Workout</button>
+        </div>
+        <div id="workout-history-list" class="list-container">
+          <p class="empty-state">No workouts recorded yet. Begin your journey.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- LIFTS TAB -->
+    <section id="tab-lifts" class="tab-panel" role="tabpanel" aria-label="Lifts">
+
+      <div class="panel-section">
+        <div class="lift-search-row">
+          <label for="lift-select-input" class="search-label">Explore a Lift</label>
+          <div class="search-input-wrap">
+            <input
+              id="lift-select-input"
+              class="lift-search-input"
+              list="lifts-datalist"
+              type="text"
+              placeholder="Search lifts&#8230;"
+              autocomplete="off"
+            />
+            <datalist id="lifts-datalist"></datalist>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="lift-chart" aria-label="Lift progression chart"></canvas>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="section-heading">All Lifts</h2>
+        <div id="lifts-table-wrap">
+          <p class="empty-state">No lifts recorded yet. Add exercises to a workout to begin.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- WORKOUTS TAB -->
+    <section id="tab-workouts" class="tab-panel" role="tabpanel" aria-label="Workouts">
+
+      <div id="workout-editor">
+        <p class="empty-state">Select a workout from History to edit it, or create a new one.</p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- SETTINGS DIALOG -->
+  <dialog id="settings-dialog" aria-modal="true" aria-labelledby="settings-dialog-title">
+    <div class="dialog-inner">
+
+      <div class="dialog-header">
+        <h2 class="section-heading" id="settings-dialog-title">Settings</h2>
+        <button class="icon-btn dialog-close" id="settings-close" aria-label="Close settings">&#10005;</button>
+      </div>
+
+      <section class="settings-section">
+        <h3 class="settings-section-heading">Muscle Group Conflicts</h3>
+        <p class="settings-hint">
+          Define which muscle groups conflict with each other. Gaindalf will warn you when
+          scheduling workouts that stress conflicting groups too close together.
+        </p>
+
+        <div id="conflicts-list" class="conflicts-list">
+          <!-- Conflict tags rendered here by JS -->
+        </div>
+
+        <div class="add-conflict-form">
+          <select id="conflict-group-a" class="conflict-select" aria-label="First muscle group">
+            <option value="">Group A&#8230;</option>
+          </select>
+          <span class="conflict-arrow" aria-hidden="true">&#8596;</span>
+          <select id="conflict-group-b" class="conflict-select" aria-label="Second muscle group">
+            <option value="">Group B&#8230;</option>
+          </select>
+          <button class="btn-primary" id="add-conflict-btn">Add</button>
+        </div>
+      </section>
+
+    </div>
+  </dialog>
+
+  <!-- Saved indicator -->
+  <div id="saved-indicator" class="saved-indicator" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

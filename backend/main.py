@@ -29,5 +29,5 @@ app.mount("/static", StaticFiles(directory="frontend", html=True), name="static"
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
-async def serve_spa(_: str):
+async def serve_spa():
     return FileResponse("frontend/index.html")
