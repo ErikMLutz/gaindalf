@@ -70,6 +70,9 @@ export const api = {
   deleteLift: (id) =>
     request(`${BASE}/lifts/${id}`, { method: 'DELETE' }),
 
+  getLiftLastSets: (liftId) =>
+    request(`${BASE}/lifts/${liftId}/last-sets`),
+
   // ---------------------------------------------------------------------------
   // Workouts
   // ---------------------------------------------------------------------------

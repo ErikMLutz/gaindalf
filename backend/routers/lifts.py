@@ -129,3 +129,33 @@ def delete_lift(id: int, session: SessionDep):
 
     session.delete(lift)
     session.commit()
+
+
+class PreviousSetRead(SQLModel):
+    set_number: int
+    reps: int | None
+    weight: float | None
+
+
+@router.get("/{lift_id}/last-sets", response_model=list[PreviousSetRead])
+def get_last_sets(lift_id: int, session: SessionDep):
+    """Return the sets from the most recent workout containing this lift."""
+    from backend.models import Workout, WorkoutLift, WorkoutSet
+
+    result = session.exec(
+        select(WorkoutLift)
+        .join(Workout, WorkoutLift.workout_id == Workout.id)
+        .where(WorkoutLift.lift_id == lift_id)
+        .order_by(Workout.date.desc(), WorkoutLift.id.desc())
+    ).first()
+
+    if result is None:
+        return []
+
+    sets = session.exec(
+        select(WorkoutSet)
+        .where(WorkoutSet.workout_lift_id == result.id)
+        .order_by(WorkoutSet.set_number)
+    ).all()
+
+    return [PreviousSetRead(set_number=s.set_number, reps=s.reps, weight=s.weight) for s in sets]

@@ -904,6 +904,81 @@ a:hover {
   border-bottom: none;
 }
 
+/* Workout header — date + subtitle inline */
+.workout-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.workout-date {
+  font-family: var(--font-heading);
+  color: var(--accent-gold);
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.workout-subtitle {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--border);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  padding: 0.25rem 0;
+}
+
+.workout-subtitle:focus {
+  outline: none;
+  border-bottom-color: var(--accent-gold);
+}
+
+/* Lift cards */
+.lift-card {
+  background: var(--parchment-dark);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+}
+
+.lift-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.lift-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.lift-card-name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.lift-card-footer {
+  margin-top: 0.5rem;
+}
+
+/* Workout footer — action buttons at the bottom */
+.workout-footer {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
 /* -----------------------------------------------------------------------------
    Dialog
    ----------------------------------------------------------------------------- */

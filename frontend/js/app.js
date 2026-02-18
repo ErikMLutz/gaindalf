@@ -1,6 +1,6 @@
 import { initHome, refreshHome } from './home.js';
 import { initLifts, refreshLifts } from './lifts.js';
-import { initWorkouts } from './workouts.js';
+import { initWorkouts, refreshWorkouts } from './workouts.js';
 import { api } from './api.js';
 
 // ---------------------------------------------------------------------------
@@ -227,4 +227,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initLifts();
   registerTabRefresh('lifts', refreshLifts);
   initWorkouts();
+  registerTabRefresh('workouts', refreshWorkouts);
 });
