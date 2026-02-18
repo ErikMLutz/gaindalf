@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+import backend.models as _models  # noqa: F401 — registers tables with SQLModel metadata
 from backend.database import create_db_and_tables
 
 
