@@ -218,6 +218,25 @@ function buildLiftCard(wl) {
 
   titleDiv.appendChild(nameSpan);
 
+  // Muscle group pills — look up from already-loaded reference data
+  const liftData = allLifts.find((l) => l.id === wl.lift_id);
+  const mgIds = liftData?.muscle_group_ids ?? [];
+  if (mgIds.length > 0) {
+    const mgMap = {};
+    allMuscleGroups.forEach((g) => { mgMap[g.id] = g.name; });
+    const pillsDiv = document.createElement('div');
+    pillsDiv.className = 'lift-card-muscles';
+    mgIds.forEach((gid) => {
+      const gname = mgMap[gid];
+      if (!gname) return;
+      const pill = document.createElement('span');
+      pill.className = 'muscle-pill';
+      pill.textContent = gname;
+      pillsDiv.appendChild(pill);
+    });
+    titleDiv.appendChild(pillsDiv);
+  }
+
   const removeBtn = document.createElement('button');
   removeBtn.className = 'remove-lift-btn icon-btn';
   removeBtn.title = 'Remove lift';

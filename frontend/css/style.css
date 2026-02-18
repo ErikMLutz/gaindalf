@@ -1030,6 +1030,10 @@ a:hover {
   font-size: 1rem;
 }
 
+.lift-card-muscles {
+  margin-top: 0.3rem;
+}
+
 .lift-card-footer {
   margin-top: 0.5rem;
 }
