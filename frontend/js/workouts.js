@@ -259,7 +259,7 @@ function buildLiftCard(wl) {
   table.className = 'sets-table';
 
   const thead = document.createElement('thead');
-  thead.innerHTML = '<tr><th>Set</th><th>Reps</th><th>Weight (kg)</th><th></th></tr>';
+  thead.innerHTML = '<tr><th>Set</th><th>Reps</th><th>Weight (lbs)</th><th></th></tr>';
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
@@ -326,8 +326,8 @@ function buildSetRow(set) {
   weightInput.className = 'editable-number weight-input';
   weightInput.type = 'number';
   weightInput.min = '0';
-  weightInput.step = '0.5';
-  if (set.weight != null) weightInput.value = set.weight;
+  weightInput.step = '2.5';
+  if (set.weight != null) weightInput.value = Math.round(set.weight * 2.20462 * 10) / 10;
   weightInput.placeholder = '\u2014';
   tdWeight.appendChild(weightInput);
 
@@ -351,7 +351,7 @@ function buildSetRow(set) {
     const repsRaw = repsInput.value.trim();
     const weightRaw = weightInput.value.trim();
     const reps = repsRaw === '' ? null : parseInt(repsRaw, 10);
-    const weight = weightRaw === '' ? null : parseFloat(weightRaw);
+    const weight = weightRaw === '' ? null : parseFloat(weightRaw) / 2.20462;
     try {
       await api.updateSet(set.id, { reps, weight });
       showSaved();
