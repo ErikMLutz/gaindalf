@@ -322,15 +322,98 @@ function buildLiftRow(lift) {
   const groupsTd = document.createElement('td');
   groupsTd.className = 'lift-groups-cell';
 
-  const ids = Array.isArray(lift.muscle_group_ids) ? lift.muscle_group_ids : [];
-  ids.forEach((gid) => {
-    const name = muscleGroupMap[gid];
-    if (!name) return;
-    const pill = document.createElement('span');
-    pill.className = 'muscle-pill';
-    pill.textContent = name;
-    groupsTd.appendChild(pill);
-  });
+  let currentGroupIds = Array.isArray(lift.muscle_group_ids) ? [...lift.muscle_group_ids] : [];
+
+  function renderGroupPills() {
+    groupsTd.innerHTML = '';
+
+    currentGroupIds.forEach((gid) => {
+      const gname = muscleGroupMap[gid];
+      if (!gname) return;
+      const pill = document.createElement('span');
+      pill.className = 'muscle-pill muscle-pill-editable';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = gname;
+      pill.appendChild(nameSpan);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'muscle-pill-remove';
+      removeBtn.textContent = '\u00d7';
+      removeBtn.title = `Remove ${gname}`;
+      removeBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const newIds = currentGroupIds.filter((id) => id !== gid);
+        try {
+          await api.updateLift(lift.id, { muscleGroupIds: newIds });
+          currentGroupIds = newIds;
+          const l = allLifts.find((al) => al.id === lift.id);
+          if (l) l.muscle_group_ids = newIds;
+          showSaved();
+          renderGroupPills();
+        } catch (err) {
+          console.error('Failed to remove muscle group:', err);
+        }
+      });
+      pill.appendChild(removeBtn);
+      groupsTd.appendChild(pill);
+    });
+
+    // "+" button to add a group
+    const allGroupIds = Object.keys(muscleGroupMap).map(Number);
+    const available = allGroupIds.filter((id) => !currentGroupIds.includes(id));
+    if (available.length === 0) return;
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn-secondary btn-small muscle-pill-add';
+    addBtn.textContent = '+';
+    addBtn.title = 'Add muscle group';
+    addBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const sel = document.createElement('select');
+      sel.className = 'muscle-group-add-select';
+
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Add\u2026';
+      sel.appendChild(placeholder);
+
+      available.forEach((id) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = muscleGroupMap[id];
+        sel.appendChild(opt);
+      });
+
+      addBtn.replaceWith(sel);
+      sel.focus();
+
+      sel.addEventListener('blur', () => {
+        if (document.body.contains(sel)) sel.replaceWith(addBtn);
+      });
+
+      sel.addEventListener('change', async () => {
+        const selectedId = parseInt(sel.value);
+        if (!selectedId) return;
+        const newIds = [...currentGroupIds, selectedId];
+        try {
+          await api.updateLift(lift.id, { muscleGroupIds: newIds });
+          currentGroupIds = newIds;
+          const l = allLifts.find((al) => al.id === lift.id);
+          if (l) l.muscle_group_ids = newIds;
+          showSaved();
+          renderGroupPills();
+        } catch (err) {
+          console.error('Failed to add muscle group:', err);
+          if (document.body.contains(sel)) sel.replaceWith(addBtn);
+        }
+      });
+    });
+
+    groupsTd.appendChild(addBtn);
+  }
+
+  renderGroupPills();
 
   // --- Delete cell ---
   const deleteTd = document.createElement('td');

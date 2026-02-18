@@ -722,6 +722,57 @@ a:hover {
   box-shadow: 0 1px 2px var(--shadow);
 }
 
+/* Editable muscle pill (with remove button) */
+.muscle-pill-editable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.muscle-pill-remove {
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-muted);
+  font-size: 0.6rem;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.6;
+  transition: color var(--transition), opacity var(--transition);
+}
+
+.muscle-pill-remove:hover {
+  color: var(--accent-red);
+  opacity: 1;
+}
+
+/* Inline select for adding a muscle group to a lift row */
+.muscle-group-add-select {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--ink);
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.35rem;
+  outline: none;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.muscle-group-add-select:focus {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px rgba(139, 105, 20, 0.14);
+}
+
+/* + button in lift table muscle groups cell */
+.muscle-pill-add {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+}
+
 /* Conflict pill — reuses the conflict-tag shape for the settings dialog */
 .conflict-pill {
   display: inline-flex;
@@ -1023,6 +1074,7 @@ a:hover {
    Dialog
    ----------------------------------------------------------------------------- */
 dialog {
+  margin: auto;
   border: none;
   padding: 0;
   border-radius: var(--radius-md);
