@@ -50,11 +50,30 @@ LIFTS: dict[str, list[tuple[str, bool]]] = {
         ("Lateral Raise", False),
         ("Face Pull", True),
     ],
-    "Biceps": [("Barbell Curl", False), ("Hammer Curl", True)],
-    "Triceps": [("Tricep Pushdown", False), ("Skull Crusher", False)],
+    # Pull-up and Barbell Row are compound lifts that also hit Biceps
+    "Biceps": [
+        ("Barbell Curl", False),
+        ("Hammer Curl", True),
+        ("Pull-up", False),
+        ("Barbell Row", False),
+    ],
+    # Bench Press and Overhead Press have significant Triceps involvement
+    "Triceps": [
+        ("Tricep Pushdown", False),
+        ("Skull Crusher", False),
+        ("Bench Press", False),
+        ("Overhead Press", False),
+    ],
     "Quads": [("Squat", False), ("Leg Press", False), ("Bulgarian Split Squat", False)],
-    "Hamstrings": [("Romanian Deadlift", False), ("Leg Curl", False)],
-    "Glutes": [("Hip Thrust", False), ("Cable Kickback", True)],
+    # Deadlift is a major posterior-chain compound that also loads Hamstrings
+    "Hamstrings": [("Romanian Deadlift", False), ("Leg Curl", False), ("Deadlift", False)],
+    # Squat, Hip Thrust, and Romanian Deadlift all heavily recruit Glutes
+    "Glutes": [
+        ("Hip Thrust", False),
+        ("Cable Kickback", True),
+        ("Squat", False),
+        ("Romanian Deadlift", False),
+    ],
     "Core": [("Ab Wheel Rollout", False), ("Hanging Leg Raise", False)],
     "Calves": [("Standing Calf Raise", False), ("Seated Calf Raise", True)],
 }
@@ -209,9 +228,10 @@ def seed() -> None:
 
         for group_name, lifts in LIFTS.items():
             for lift_name, is_late in lifts:
-                lift = Lift(name=lift_name)
-                session.add(lift)
-                lift_map[lift_name] = lift
+                if lift_name not in lift_map:
+                    lift = Lift(name=lift_name)
+                    session.add(lift)
+                    lift_map[lift_name] = lift
                 if is_late:
                     lift_late.add(lift_name)
         session.commit()
