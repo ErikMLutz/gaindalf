@@ -2,7 +2,11 @@ import { initHome, refreshHome } from './home.js';
 import { initLifts, refreshLifts } from './lifts.js';
 import { initWorkouts, refreshWorkouts } from './workouts.js';
 import { api } from './api.js';
-import { showSaved } from './utils.js';
+import { createCustomSelect, showConfirm, showError, showPrompt, showSaved } from './utils.js';
+
+// Custom select instances for the conflict form (created lazily on first settings open)
+let dropdownA = null;
+let dropdownB = null;
 
 // ---------------------------------------------------------------------------
 // Tab switching
@@ -133,7 +137,7 @@ async function loadMuscleGroupsTable() {
   }
 
   document.getElementById('add-muscle-group-btn')?.addEventListener('click', async () => {
-    const name = prompt('Muscle group name:');
+    const name = await showPrompt('Muscle group name:');
     if (!name || !name.trim()) return;
     try {
       await api.createMuscleGroup(name.trim());
@@ -141,7 +145,7 @@ async function loadMuscleGroupsTable() {
       await loadMuscleGroupsIntoSelects();
     } catch (err) {
       console.error('Failed to create muscle group:', err);
-      alert('Could not create muscle group. Name may already exist.');
+      showError('Could not create muscle group. Name may already exist.');
     }
   });
 }
@@ -203,7 +207,7 @@ function buildMuscleGroupRow(group) {
   deleteBtn.textContent = '\u2715';
   deleteBtn.setAttribute('aria-label', `Delete ${group.name}`);
   deleteBtn.addEventListener('click', async () => {
-    if (!confirm(`Delete "${group.name}"?`)) return;
+    if (!await showConfirm(`Delete "${group.name}"?`)) return;
     try {
       await api.deleteMuscleGroup(group.id);
       tr.remove();
@@ -211,7 +215,7 @@ function buildMuscleGroupRow(group) {
       await loadConflicts();
     } catch (err) {
       console.error('Failed to delete muscle group:', err);
-      alert('Could not delete muscle group.');
+      showError('Could not delete muscle group.');
     }
   });
   deleteTd.appendChild(deleteBtn);
@@ -242,17 +246,17 @@ async function commitMuscleGroupRename(id, displayEl, inputEl) {
   } catch (err) {
     console.error('Failed to rename muscle group:', err);
     inputEl.value = displayEl.textContent;
-    alert('Could not rename muscle group.');
+    showError('Could not rename muscle group.');
   }
 }
 
 /**
- * Fetch muscle groups and populate both select dropdowns in the settings dialog.
+ * Fetch muscle groups and populate the custom select dropdowns in the conflict form.
  */
 async function loadMuscleGroupsIntoSelects() {
-  const selectA = document.getElementById('conflict-group-a');
-  const selectB = document.getElementById('conflict-group-b');
-  if (!selectA || !selectB) return;
+  const containerA = document.getElementById('conflict-group-a');
+  const containerB = document.getElementById('conflict-group-b');
+  if (!containerA || !containerB) return;
 
   let groups;
   try {
@@ -262,21 +266,19 @@ async function loadMuscleGroupsIntoSelects() {
     return;
   }
 
-  function buildOptions(select) {
-    // Keep the placeholder option
-    const placeholder = select.options[0];
-    select.innerHTML = '';
-    select.appendChild(placeholder);
-    groups.forEach((g) => {
-      const opt = document.createElement('option');
-      opt.value = g.id;
-      opt.textContent = g.name;
-      select.appendChild(opt);
-    });
+  const items = groups.map((g) => ({ value: g.id, label: g.name }));
+
+  if (!dropdownA) {
+    dropdownA = createCustomSelect({ placeholder: 'Group A\u2026', ariaLabel: 'First muscle group' });
+    containerA.appendChild(dropdownA.element);
+  }
+  if (!dropdownB) {
+    dropdownB = createCustomSelect({ placeholder: 'Group B\u2026', ariaLabel: 'Second muscle group' });
+    containerB.appendChild(dropdownB.element);
   }
 
-  buildOptions(selectA);
-  buildOptions(selectB);
+  dropdownA.setItems(items);
+  dropdownB.setItems(items);
 }
 
 /**
@@ -338,18 +340,15 @@ function buildConflictPill(conflict) {
  * Handle the "Add" button click in the conflict form.
  */
 async function handleAddConflict() {
-  const selectA = document.getElementById('conflict-group-a');
-  const selectB = document.getElementById('conflict-group-b');
-
-  const idA = Number(selectA?.value);
-  const idB = Number(selectB?.value);
+  const idA = Number(dropdownA?.getValue());
+  const idB = Number(dropdownB?.getValue());
 
   if (!idA || !idB) {
-    alert('Please select both muscle groups.');
+    showError('Please select both muscle groups.');
     return;
   }
   if (idA === idB) {
-    alert('Please select two different muscle groups.');
+    showError('Please select two different muscle groups.');
     return;
   }
 
@@ -357,13 +356,13 @@ async function handleAddConflict() {
     await api.addConflict(idA, idB);
   } catch (err) {
     console.error('Failed to add conflict:', err);
-    alert('Could not add conflict. It may already exist.');
+    showError('Could not add conflict. It may already exist.');
     return;
   }
 
-  // Reset selects and reload the list
-  selectA.value = '';
-  selectB.value = '';
+  // Reset dropdowns and reload the list
+  dropdownA.setValue('');
+  dropdownB.setValue('');
   await loadConflicts();
 }
 
@@ -376,7 +375,7 @@ async function handleDeleteConflict(id) {
     await api.deleteConflict(id);
   } catch (err) {
     console.error('Failed to delete conflict:', err);
-    alert('Could not remove conflict.');
+    showError('Could not remove conflict.');
     return;
   }
   await loadConflicts();

@@ -747,30 +747,123 @@ a:hover {
   opacity: 1;
 }
 
-/* Inline select for adding a muscle group to a lift row */
-.muscle-group-add-select {
+/* Wrapper for the inline muscle-group add panel (positions the dropdown panel) */
+.muscle-pill-add-wrap {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Custom Select (Pines-style dropdown)
+   ----------------------------------------------------------------------------- */
+.custom-select {
+  position: relative;
+  display: inline-block;
+}
+
+.custom-select-trigger {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  width: 100%;
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: 0.88rem;
   color: var(--ink);
   background: var(--parchment);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 0.15rem 0.35rem;
-  outline: none;
+  padding: 0.4rem 0.65rem;
   cursor: pointer;
-  vertical-align: middle;
+  text-align: left;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
-.muscle-group-add-select:focus {
+.custom-select-trigger:hover {
+  border-color: var(--accent-gold-light);
+}
+
+.custom-select-trigger:focus {
+  outline: none;
   border-color: var(--accent-gold);
   box-shadow: 0 0 0 2px rgba(139, 105, 20, 0.14);
 }
 
-/* + button in lift table muscle groups cell */
-.muscle-pill-add {
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 0.2rem;
+.custom-select-trigger[aria-expanded="true"] {
+  border-color: var(--accent-gold);
+}
+
+.custom-select-label.custom-select-placeholder {
+  color: var(--ink-muted);
+}
+
+.custom-select-arrow {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.custom-select-panel {
+  position: absolute;
+  z-index: 200;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 100%;
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px var(--shadow-deep);
+  list-style: none;
+  padding: 0.25rem 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.custom-select-item {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--ink-light);
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  transition: background-color var(--transition);
+}
+
+.custom-select-item:hover {
+  background: var(--parchment-dark);
+  color: var(--ink);
+}
+
+.custom-select-item.selected {
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+.custom-select-item.highlighted {
+  background: var(--parchment-darker);
+  color: var(--ink);
+}
+
+/* Combobox wrapper — positions the suggestion panel */
+.combobox-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.combobox-input {
+  width: 100%;
+}
+
+/* Conflict form: make each custom-select fill available space */
+.add-conflict-form .custom-select {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.add-conflict-form .custom-select-trigger {
+  width: 100%;
 }
 
 /* Conflict pill — reuses the conflict-tag shape for the settings dialog */
@@ -1174,6 +1267,51 @@ dialog::backdrop {
   position: relative;
 }
 
+/* Compact variant for confirm/prompt dialogs */
+dialog.dialog-compact {
+  max-width: 360px;
+}
+
+.dialog-message {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-bottom: 1.5rem;
+}
+
+.dialog-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--ink);
+  margin-bottom: 0.6rem;
+}
+
+.dialog-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--parchment-dark);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.7rem;
+  margin-bottom: 1.2rem;
+  outline: none;
+}
+
+.dialog-input:focus {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px rgba(139, 105, 20, 0.15);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
 /* -----------------------------------------------------------------------------
    Settings Section
    ----------------------------------------------------------------------------- */
@@ -1300,24 +1438,10 @@ dialog::backdrop {
   flex-wrap: wrap;
 }
 
-.conflict-select {
-  font-family: var(--font-body);
-  font-size: 0.88rem;
-  color: var(--ink);
-  background: var(--parchment);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.65rem;
-  outline: none;
-  cursor: pointer;
-  flex: 1;
-  min-width: 8rem;
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
-
-.conflict-select:focus {
-  border-color: var(--accent-gold);
-  box-shadow: 0 0 0 2px rgba(139, 105, 20, 0.14);
+/* Conflict group containers participate in the flex row */
+#conflict-group-a,
+#conflict-group-b {
+  display: contents;
 }
 
 .conflict-arrow {
@@ -1387,6 +1511,32 @@ dialog::backdrop {
 .saved-indicator::before {
   content: '✦ ';
   color: var(--accent-gold-light);
+}
+
+.saved-indicator.error {
+  border-color: #9a3030;
+}
+
+.saved-indicator.error::before {
+  color: #c44444;
+}
+
+/* -----------------------------------------------------------------------------
+   Pagination
+   ----------------------------------------------------------------------------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0 0.5rem;
+}
+
+.pagination-info {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
 }
 
 /* -----------------------------------------------------------------------------
@@ -1494,7 +1644,7 @@ dialog::backdrop {
     flex-direction: column;
   }
 
-  .conflict-select {
+  .add-conflict-form .custom-select-trigger {
     width: 100%;
   }
 

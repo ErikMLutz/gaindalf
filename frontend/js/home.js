@@ -2,6 +2,8 @@ import { api } from './api.js';
 import { formatDate } from './utils.js';
 
 let progressChart = null; // Chart.js instance, destroyed/recreated on refresh
+let workoutsPage = 0;     // current pagination page for workout history (0-indexed)
+const WORKOUTS_PER_PAGE = 10;
 
 async function renderProgressChart() {
   const canvas = document.getElementById('progress-chart');
@@ -146,9 +148,14 @@ async function renderWorkoutHistory() {
     return;
   }
 
+  const totalPages = Math.max(1, Math.ceil(workouts.length / WORKOUTS_PER_PAGE));
+  if (workoutsPage >= totalPages) workoutsPage = totalPages - 1;
+
+  const pageItems = workouts.slice(workoutsPage * WORKOUTS_PER_PAGE, (workoutsPage + 1) * WORKOUTS_PER_PAGE);
+
   container.innerHTML = '';
 
-  workouts.forEach((workout) => {
+  pageItems.forEach((workout) => {
     const item = document.createElement('div');
     item.className = 'history-item';
     item.dataset.workoutId = workout.id;
@@ -195,6 +202,36 @@ async function renderWorkoutHistory() {
 
     container.appendChild(item);
   });
+
+  if (totalPages > 1) {
+    const pagination = document.createElement('div');
+    pagination.className = 'pagination';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn-secondary btn-small';
+    prevBtn.textContent = '\u2190 Prev';
+    prevBtn.disabled = workoutsPage === 0;
+    prevBtn.addEventListener('click', () => {
+      if (workoutsPage > 0) { workoutsPage--; renderWorkoutHistory(); }
+    });
+
+    const info = document.createElement('span');
+    info.className = 'pagination-info';
+    info.textContent = `${workoutsPage + 1} / ${totalPages}`;
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn-secondary btn-small';
+    nextBtn.textContent = 'Next \u2192';
+    nextBtn.disabled = workoutsPage >= totalPages - 1;
+    nextBtn.addEventListener('click', () => {
+      if (workoutsPage < totalPages - 1) { workoutsPage++; renderWorkoutHistory(); }
+    });
+
+    pagination.appendChild(prevBtn);
+    pagination.appendChild(info);
+    pagination.appendChild(nextBtn);
+    container.appendChild(pagination);
+  }
 }
 
 export async function initHome() {

@@ -1,10 +1,14 @@
 import { api } from './api.js';
-import { debounce, formatDate, showSaved } from './utils.js';
+import { createCombobox, debounce, formatDate, showConfirm, showError, showPrompt, showSaved } from './utils.js';
 
 let liftChart = null;       // Chart.js instance, destroyed/recreated on each lift selection
 let allLifts = [];           // [{id, name, muscle_group_ids}]
 let muscleGroupMap = {};     // {id: name}
 let selectedLiftId = null;  // currently charted lift
+let liftsPage = 0;          // current pagination page (0-indexed)
+let liftsFilter = '';       // current filter string
+const LIFTS_PER_PAGE = 20;
+let liftCombobox = null;    // createCombobox instance for the lift selector
 
 // ---------------------------------------------------------------------------
 // Data loading
@@ -31,19 +35,11 @@ async function loadLiftsData() {
 }
 
 // ---------------------------------------------------------------------------
-// Datalist population
+// Combobox items update
 // ---------------------------------------------------------------------------
 
 function populateDatalist() {
-  const datalist = document.getElementById('lifts-datalist');
-  if (!datalist) return;
-  datalist.innerHTML = '';
-  allLifts.forEach((lift) => {
-    const opt = document.createElement('option');
-    opt.value = lift.name;
-    opt.dataset.id = lift.id;
-    datalist.appendChild(opt);
-  });
+  liftCombobox?.setItems(allLifts.map((l) => ({ value: l.id, label: l.name })));
 }
 
 // ---------------------------------------------------------------------------
@@ -191,9 +187,8 @@ function selectLiftForChart(liftId, liftName) {
   const tr = document.querySelector(`.lifts-table tr[data-lift-id="${liftId}"]`);
   if (tr) tr.classList.add('selected-lift-row');
 
-  // Sync the search input
-  const selectInput = document.getElementById('lift-select-input');
-  if (selectInput) selectInput.value = liftName;
+  // Sync the combobox input
+  liftCombobox?.setValue(liftName);
 
   // Render the chart
   renderLiftChart(liftId);
@@ -207,13 +202,19 @@ function selectLiftForChart(liftId, liftName) {
 // Lifts table
 // ---------------------------------------------------------------------------
 
+function getFilteredLifts() {
+  if (!liftsFilter) return allLifts;
+  const q = liftsFilter.toLowerCase();
+  return allLifts.filter((l) => l.name.toLowerCase().includes(q));
+}
+
 async function renderLiftsTable() {
   const wrap = document.getElementById('lifts-table-wrap');
   if (!wrap) return;
 
   wrap.innerHTML = `
     <div class="table-filter-row">
-      <input class="input-search" id="lift-filter-input" placeholder="Filter lifts\u2026" type="text">
+      <input class="input-search" id="lift-filter-input" placeholder="Filter lifts\u2026" type="text" value="">
       <button class="btn-primary" id="add-lift-btn">+ New Lift</button>
     </div>
     <table class="lifts-table">
@@ -222,27 +223,17 @@ async function renderLiftsTable() {
       </thead>
       <tbody id="lifts-tbody"></tbody>
     </table>
+    <div id="lifts-pagination" class="pagination"></div>
   `;
 
-  const tbody = document.getElementById('lifts-tbody');
-  if (!tbody) return;
-
-  if (allLifts.length === 0) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="3" class="empty-state">No lifts yet. Add exercises to a workout to begin.</td>';
-    tbody.appendChild(tr);
-  } else {
-    allLifts.forEach((lift) => {
-      const row = buildLiftRow(lift);
-      tbody.appendChild(row);
-    });
-  }
-
-  // Filter input
+  // Restore filter value in the input
   const filterInput = document.getElementById('lift-filter-input');
   if (filterInput) {
+    filterInput.value = liftsFilter;
     filterInput.addEventListener('input', debounce(() => {
-      applyFilter(filterInput.value);
+      liftsFilter = filterInput.value;
+      liftsPage = 0;
+      renderLiftsTbody();
     }, 200));
   }
 
@@ -250,19 +241,83 @@ async function renderLiftsTable() {
   const addBtn = document.getElementById('add-lift-btn');
   if (addBtn) {
     addBtn.addEventListener('click', async () => {
-      const name = prompt('Lift name:');
+      const name = await showPrompt('Lift name:');
       if (!name || !name.trim()) return;
       try {
         await api.createLift(name.trim(), []);
         await loadLiftsData();
         populateDatalist();
-        await renderLiftsTable();
+        renderLiftsTbody();
       } catch (err) {
         console.error('Failed to create lift:', err);
-        alert('Could not create lift.');
+        showError('Could not create lift.');
       }
     });
   }
+
+  renderLiftsTbody();
+}
+
+function renderLiftsTbody() {
+  const tbody = document.getElementById('lifts-tbody');
+  if (!tbody) return;
+
+  const filtered = getFilteredLifts();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / LIFTS_PER_PAGE));
+  if (liftsPage >= totalPages) liftsPage = totalPages - 1;
+
+  const pageItems = filtered.slice(liftsPage * LIFTS_PER_PAGE, (liftsPage + 1) * LIFTS_PER_PAGE);
+  tbody.innerHTML = '';
+
+  if (pageItems.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="3" class="empty-state">No lifts yet. Add exercises to a workout to begin.</td>';
+    tbody.appendChild(tr);
+  } else {
+    pageItems.forEach((lift) => tbody.appendChild(buildLiftRow(lift)));
+  }
+
+  // Re-apply selected row highlight for any row on this page
+  if (selectedLiftId) {
+    const tr = document.querySelector(`.lifts-table tr[data-lift-id="${selectedLiftId}"]`);
+    if (tr) tr.classList.add('selected-lift-row');
+  }
+
+  renderLiftsPagination(filtered.length);
+}
+
+function renderLiftsPagination(totalItems) {
+  const container = document.getElementById('lifts-pagination');
+  if (!container) return;
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIFTS_PER_PAGE));
+  container.innerHTML = '';
+
+  if (totalPages <= 1) return;
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn-secondary btn-small';
+  prevBtn.textContent = '\u2190 Prev';
+  prevBtn.disabled = liftsPage === 0;
+  prevBtn.addEventListener('click', () => {
+    if (liftsPage > 0) { liftsPage--; renderLiftsTbody(); }
+  });
+
+  const info = document.createElement('span');
+  info.className = 'pagination-info';
+  info.textContent = `${liftsPage + 1} / ${totalPages}`;
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn-secondary btn-small';
+  nextBtn.textContent = 'Next \u2192';
+  nextBtn.disabled = liftsPage >= totalPages - 1;
+  nextBtn.addEventListener('click', () => {
+    if (liftsPage < totalPages - 1) { liftsPage++; renderLiftsTbody(); }
+  });
+
+  container.appendChild(prevBtn);
+  container.appendChild(info);
+  container.appendChild(nextBtn);
 }
 
 /**
@@ -364,53 +419,61 @@ function buildLiftRow(lift) {
     const available = allGroupIds.filter((id) => !currentGroupIds.includes(id));
     if (available.length === 0) return;
 
+    const addWrap = document.createElement('span');
+    addWrap.className = 'muscle-pill-add-wrap';
+
     const addBtn = document.createElement('button');
-    addBtn.className = 'btn-secondary btn-small muscle-pill-add';
+    addBtn.className = 'btn-secondary btn-small';
     addBtn.textContent = '+';
     addBtn.title = 'Add muscle group';
     addBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const sel = document.createElement('select');
-      sel.className = 'muscle-group-add-select';
 
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = 'Add\u2026';
-      sel.appendChild(placeholder);
+      // Toggle: close if already open
+      const existing = addWrap.querySelector('.custom-select-panel');
+      if (existing) { existing.remove(); return; }
+
+      const panel = document.createElement('ul');
+      panel.className = 'custom-select-panel';
+      panel.setAttribute('role', 'listbox');
 
       available.forEach((id) => {
-        const opt = document.createElement('option');
-        opt.value = id;
-        opt.textContent = muscleGroupMap[id];
-        sel.appendChild(opt);
+        const li = document.createElement('li');
+        li.className = 'custom-select-item';
+        li.setAttribute('role', 'option');
+        li.textContent = muscleGroupMap[id];
+        li.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          panel.remove();
+          document.removeEventListener('click', onOutside);
+          const newIds = [...currentGroupIds, id];
+          try {
+            await api.updateLift(lift.id, { muscleGroupIds: newIds });
+            currentGroupIds = newIds;
+            const l = allLifts.find((al) => al.id === lift.id);
+            if (l) l.muscle_group_ids = newIds;
+            showSaved();
+            renderGroupPills();
+          } catch (err) {
+            console.error('Failed to add muscle group:', err);
+          }
+        });
+        panel.appendChild(li);
       });
 
-      addBtn.replaceWith(sel);
-      sel.focus();
+      addWrap.appendChild(panel);
 
-      sel.addEventListener('blur', () => {
-        if (document.body.contains(sel)) sel.replaceWith(addBtn);
-      });
-
-      sel.addEventListener('change', async () => {
-        const selectedId = parseInt(sel.value);
-        if (!selectedId) return;
-        const newIds = [...currentGroupIds, selectedId];
-        try {
-          await api.updateLift(lift.id, { muscleGroupIds: newIds });
-          currentGroupIds = newIds;
-          const l = allLifts.find((al) => al.id === lift.id);
-          if (l) l.muscle_group_ids = newIds;
-          showSaved();
-          renderGroupPills();
-        } catch (err) {
-          console.error('Failed to add muscle group:', err);
-          if (document.body.contains(sel)) sel.replaceWith(addBtn);
+      function onOutside(ev) {
+        if (!addWrap.contains(ev.target)) {
+          panel.remove();
+          document.removeEventListener('click', onOutside);
         }
-      });
+      }
+      setTimeout(() => document.addEventListener('click', onOutside), 0);
     });
 
-    groupsTd.appendChild(addBtn);
+    addWrap.appendChild(addBtn);
+    groupsTd.appendChild(addWrap);
   }
 
   renderGroupPills();
@@ -421,16 +484,15 @@ function buildLiftRow(lift) {
   deleteBtn.className = 'btn-danger btn-small delete-lift-btn';
   deleteBtn.textContent = '\u2715'; // ✕
   deleteBtn.addEventListener('click', async () => {
-    if (!confirm('Delete this lift?')) return;
+    if (!await showConfirm('Delete this lift?')) return;
     try {
       await api.deleteLift(lift.id);
-      tr.remove();
-      // Also remove from allLifts and refresh datalist
       allLifts = allLifts.filter((l) => l.id !== lift.id);
       populateDatalist();
+      renderLiftsTbody();
     } catch (err) {
       console.error('Failed to delete lift:', err);
-      alert('Could not delete lift.');
+      showError('Could not delete lift.');
     }
   });
   deleteTd.appendChild(deleteBtn);
@@ -465,7 +527,7 @@ async function commitNameEdit(liftId, displayEl, inputEl) {
   try {
     await api.updateLift(liftId, { name: newName });
     displayEl.textContent = newName;
-    // Keep allLifts in sync so datalist stays accurate
+    // Keep allLifts in sync so the combobox stays accurate
     const lift = allLifts.find((l) => l.id === liftId);
     if (lift) lift.name = newName;
     populateDatalist();
@@ -474,27 +536,8 @@ async function commitNameEdit(liftId, displayEl, inputEl) {
     console.error('Failed to update lift name:', err);
     // Restore the previous name in the input so a retry is possible
     inputEl.value = displayEl.textContent;
-    alert('Could not save lift name.');
+    showError('Could not save lift name.');
   }
-}
-
-// ---------------------------------------------------------------------------
-// Filter
-// ---------------------------------------------------------------------------
-
-/**
- * Show/hide table rows based on a filter string (case-insensitive substring match).
- * @param {string} query
- */
-function applyFilter(query) {
-  const tbody = document.getElementById('lifts-tbody');
-  if (!tbody) return;
-  const q = query.toLowerCase();
-  Array.from(tbody.querySelectorAll('tr[data-lift-id]')).forEach((row) => {
-    const nameEl = row.querySelector('.lift-name-display');
-    const name = nameEl ? nameEl.textContent.toLowerCase() : '';
-    row.style.display = name.includes(q) ? '' : 'none';
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -503,7 +546,6 @@ function applyFilter(query) {
 
 export async function initLifts() {
   await loadLiftsData();
-  populateDatalist();
   renderLiftsTable();
 
   // Hide the chart canvas until a lift is selected; show the hint
@@ -512,16 +554,23 @@ export async function initLifts() {
   if (canvas) canvas.style.display = 'none';
   if (hint) hint.style.display = '';
 
-  // Lift selector change handler
-  const selectInput = document.getElementById('lift-select-input');
-  if (selectInput) {
-    selectInput.addEventListener('change', () => {
-      const name = selectInput.value.trim();
-      const lift = allLifts.find((l) => l.name === name);
-      if (lift) {
-        selectLiftForChart(lift.id, lift.name);
-      }
+  // Create the lift selector combobox
+  const container = document.getElementById('lift-combobox-container');
+  if (container) {
+    liftCombobox = createCombobox({
+      placeholder: 'Search lifts\u2026',
+      items: allLifts.map((l) => ({ value: l.id, label: l.name })),
+      onSelect: ({ value, label }) => selectLiftForChart(value, label),
+      onEnter: () => {
+        const name = liftCombobox.getValue().trim();
+        if (!name) return;
+        const lift = allLifts.find((l) => l.name.toLowerCase() === name.toLowerCase())
+          || allLifts.find((l) => l.name.toLowerCase().includes(name.toLowerCase()));
+        if (lift) selectLiftForChart(lift.id, lift.name);
+      },
+      inputClassName: 'lift-search-input',
     });
+    container.appendChild(liftCombobox.element);
   }
 }
 
@@ -530,13 +579,8 @@ export async function refreshLifts() {
   populateDatalist();
   await renderLiftsTable();
 
-  // Re-apply selected row highlight and chart after table rebuild
-  if (selectedLiftId) {
-    const lift = allLifts.find((l) => l.id === selectedLiftId);
-    if (lift) {
-      const tr = document.querySelector(`.lifts-table tr[data-lift-id="${selectedLiftId}"]`);
-      if (tr) tr.classList.add('selected-lift-row');
-      renderLiftChart(selectedLiftId);
-    }
+  // Re-render chart if a lift was selected
+  if (selectedLiftId && allLifts.find((l) => l.id === selectedLiftId)) {
+    renderLiftChart(selectedLiftId);
   }
 }

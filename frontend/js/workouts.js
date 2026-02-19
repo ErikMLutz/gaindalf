@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { debounce, formatDate, showSaved } from './utils.js';
+import { createCombobox, debounce, formatDate, showConfirm, showError, showSaved } from './utils.js';
 
 // ---------------------------------------------------------------------------
 // Module-level state
@@ -107,14 +107,14 @@ function renderWorkout(workout) {
   deleteWorkoutBtn.title = 'Delete workout';
   deleteWorkoutBtn.textContent = '\u2715';
   deleteWorkoutBtn.addEventListener('click', async () => {
-    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    if (!await showConfirm('Delete this workout? This cannot be undone.')) return;
     try {
       await api.deleteWorkout(workout.id);
       currentWorkoutId = null;
       await initWorkoutsTab();
     } catch (err) {
       console.error('Failed to delete workout:', err);
-      alert('Could not delete workout.');
+      showError('Could not delete workout.');
     }
   });
 
@@ -150,44 +150,35 @@ function renderWorkout(workout) {
   const addLiftWrap = document.createElement('div');
   addLiftWrap.className = 'add-lift-wrap';
 
-  const addLiftDatalist = document.createElement('datalist');
-  addLiftDatalist.id = 'workout-lifts-datalist';
-  allLifts.forEach((lift) => {
-    const opt = document.createElement('option');
-    opt.value = lift.name;
-    addLiftDatalist.appendChild(opt);
-  });
-
-  const addLiftInput = document.createElement('input');
-  addLiftInput.className = 'add-lift-input';
-  addLiftInput.type = 'text';
-  addLiftInput.placeholder = 'Add a lift\u2026';
-  addLiftInput.setAttribute('list', 'workout-lifts-datalist');
-  addLiftInput.setAttribute('autocomplete', 'off');
-
-  const addLiftConfirmBtn = document.createElement('button');
-  addLiftConfirmBtn.className = 'btn-secondary';
-  addLiftConfirmBtn.textContent = 'Add';
-
-  const doAddLift = async () => {
-    const name = addLiftInput.value.trim();
-    const lift = allLifts.find((l) => l.name.toLowerCase() === name.toLowerCase());
-    if (!lift) return;
+  const doAddLift = async (liftIdOverride) => {
+    const liftId = liftIdOverride ?? (() => {
+      const name = addLiftCombobox.getValue().trim();
+      const lift = allLifts.find((l) => l.name.toLowerCase() === name.toLowerCase());
+      return lift ? lift.id : null;
+    })();
+    if (!liftId) return;
     try {
-      await api.addLiftToWorkout(currentWorkoutId, { liftId: lift.id, displayOrder: 0 });
+      await api.addLiftToWorkout(currentWorkoutId, { liftId, displayOrder: 0 });
       await loadWorkout(currentWorkoutId);
     } catch (err) {
       console.error('Failed to add lift:', err);
     }
   };
 
-  addLiftConfirmBtn.addEventListener('click', doAddLift);
-  addLiftInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); doAddLift(); }
+  const addLiftCombobox = createCombobox({
+    placeholder: 'Add a lift\u2026',
+    items: allLifts.map((l) => ({ value: l.id, label: l.name })),
+    onSelect: ({ value }) => doAddLift(value),
+    onEnter: () => doAddLift(),
+    inputClassName: 'add-lift-input',
   });
 
-  addLiftWrap.appendChild(addLiftDatalist);
-  addLiftWrap.appendChild(addLiftInput);
+  const addLiftConfirmBtn = document.createElement('button');
+  addLiftConfirmBtn.className = 'btn-secondary';
+  addLiftConfirmBtn.textContent = 'Add';
+  addLiftConfirmBtn.addEventListener('click', () => doAddLift());
+
+  addLiftWrap.appendChild(addLiftCombobox.element);
   addLiftWrap.appendChild(addLiftConfirmBtn);
 
   const newWorkoutBtn = document.createElement('button');
