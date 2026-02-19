@@ -26,7 +26,7 @@ backup:
         exit 1
     fi
     DEST="$BACKUP_DIR/gaindalf-$(date +%Y%m%d-%H%M%S).db"
-    cp gaindalf.db "$DEST"
+    sqlite3 gaindalf.db ".backup '$DEST'"
     echo "Backed up to $DEST"
 
 install:
