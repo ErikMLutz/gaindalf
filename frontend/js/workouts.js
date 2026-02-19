@@ -8,6 +8,7 @@ import { debounce, formatDate, showSaved } from './utils.js';
 let currentWorkoutId = null;
 let allLifts = [];        // [{id, name, muscle_group_ids}]
 let allMuscleGroups = []; // [{id, name}]
+const cardCharts = new Map(); // wlId -> Chart.js instance
 
 // ---------------------------------------------------------------------------
 // Reference data
@@ -25,10 +26,20 @@ async function loadReferenceData() {
 }
 
 // ---------------------------------------------------------------------------
+// Chart cleanup
+// ---------------------------------------------------------------------------
+
+function destroyCardCharts() {
+  cardCharts.forEach((chart) => chart.destroy());
+  cardCharts.clear();
+}
+
+// ---------------------------------------------------------------------------
 // Empty state
 // ---------------------------------------------------------------------------
 
 function showEmptyState() {
+  destroyCardCharts();
   const editor = document.getElementById('workout-editor');
   if (!editor) return;
   editor.innerHTML =
@@ -63,7 +74,8 @@ function renderWorkout(workout) {
   const editor = document.getElementById('workout-editor');
   if (!editor) return;
 
-  // Clear previous content
+  // Clear previous content (destroy any charts first)
+  destroyCardCharts();
   editor.innerHTML = '';
 
   // --- Header ---
@@ -119,6 +131,7 @@ function renderWorkout(workout) {
   lifts.forEach((wl) => {
     const card = buildLiftCard(wl);
     cardsContainer.appendChild(card);
+    renderCardChart(wl.id, wl.lift_id); // fire-and-forget async chart render
   });
 
   editor.appendChild(cardsContainer);
@@ -254,7 +267,14 @@ function buildLiftCard(wl) {
   cardHeader.appendChild(removeBtn);
   card.appendChild(cardHeader);
 
-  // --- Sets table ---
+  // --- Body: two-column layout (table left, chart right) ---
+  const body = document.createElement('div');
+  body.className = 'lift-card-body';
+
+  // Left column: sets table
+  const tableCol = document.createElement('div');
+  tableCol.className = 'lift-card-table-col';
+
   const table = document.createElement('table');
   table.className = 'sets-table';
 
@@ -272,7 +292,20 @@ function buildLiftCard(wl) {
   });
 
   table.appendChild(tbody);
-  card.appendChild(table);
+  tableCol.appendChild(table);
+  body.appendChild(tableCol);
+
+  // Right column: chart
+  const chartCol = document.createElement('div');
+  chartCol.className = 'lift-card-chart-col';
+
+  const chartCanvas = document.createElement('canvas');
+  chartCanvas.id = `lift-card-chart-${wl.id}`;
+  chartCanvas.setAttribute('aria-label', `${wl.lift_name} progression`);
+  chartCol.appendChild(chartCanvas);
+  body.appendChild(chartCol);
+
+  card.appendChild(body);
 
   // --- Card footer ---
   const cardFooter = document.createElement('div');
@@ -369,6 +402,142 @@ function buildSetRow(set) {
   tr.appendChild(tdDelete);
 
   return tr;
+}
+
+// ---------------------------------------------------------------------------
+// Per-card lift history chart
+// ---------------------------------------------------------------------------
+
+async function renderCardChart(wlId, liftId) {
+  let data = [];
+  try {
+    data = await api.getLiftHistory(liftId);
+    if (!Array.isArray(data)) data = [];
+  } catch {
+    data = [];
+  }
+
+  // Card may have been destroyed by a re-render while we were fetching
+  const canvas = document.getElementById(`lift-card-chart-${wlId}`);
+  if (!canvas) return;
+
+  if (data.length === 0) {
+    const col = canvas.closest('.lift-card-chart-col');
+    if (col) col.style.display = 'none';
+    return;
+  }
+
+  const labels = data.map((d) => d.date);
+  const strengthValues = data.map((d) => d.strength_index ?? null);
+  const enduranceValues = data.map((d) => d.endurance_index ?? null);
+  const currentId = currentWorkoutId;
+
+  const textColor = '#5c4a1e';
+  const gridColor = 'rgba(196, 165, 90, 0.3)';
+
+  const isCurrentPoint = (ctx) => data[ctx.dataIndex]?.workout_id === currentId;
+
+  // Center the x-axis on the current workout's date so it always appears
+  // in the middle, with past workouts to the left and future to the right.
+  const DAY_MS = 86400_000;
+  const toTs = (isoDate) => new Date(`${isoDate}T00:00:00Z`).getTime();
+  const currentEntry = data.find((d) => d.workout_id === currentId);
+  let xMin, xMax;
+  if (currentEntry) {
+    const currentTs = toTs(currentEntry.date);
+    const allTs = data.map((d) => toTs(d.date));
+    const halfSpan = Math.max(
+      currentTs - Math.min(...allTs),
+      Math.max(...allTs) - currentTs,
+      7 * DAY_MS, // always show at least ±1 week around the current point
+    );
+    xMin = currentTs - halfSpan - DAY_MS;
+    xMax = currentTs + halfSpan + DAY_MS;
+  }
+
+  const chart = new window.Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Strength',
+          data: strengthValues,
+          borderColor: '#8b6914',
+          backgroundColor: 'transparent',
+          pointRadius: (ctx) => isCurrentPoint(ctx) ? 6 : 3,
+          pointBackgroundColor: (ctx) => isCurrentPoint(ctx) ? '#c0392b' : '#8b6914',
+          pointBorderColor: (ctx) => isCurrentPoint(ctx) ? '#c0392b' : '#8b6914',
+          tension: 0.3,
+          spanGaps: false,
+          fill: false,
+        },
+        {
+          label: 'Endurance',
+          data: enduranceValues,
+          borderColor: '#7a2020',
+          backgroundColor: 'transparent',
+          pointRadius: (ctx) => isCurrentPoint(ctx) ? 6 : 3,
+          pointBackgroundColor: (ctx) => isCurrentPoint(ctx) ? '#c0392b' : '#7a2020',
+          pointBorderColor: (ctx) => isCurrentPoint(ctx) ? '#c0392b' : '#7a2020',
+          tension: 0.3,
+          spanGaps: false,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            // Use dataIndex to look up the raw ISO date — items[0].label on a
+            // time axis is the formatted tick string, not the raw date string.
+            title: (items) => (items.length ? formatDate(data[items[0].dataIndex]?.date ?? '') : ''),
+            label: (item) => {
+              const val = item.parsed.y;
+              if (val == null) return null;
+              return `${item.dataset.label}: ${val.toFixed(2)}`;
+            },
+          },
+          backgroundColor: 'rgba(245, 236, 215, 0.95)',
+          borderColor: 'rgba(196, 165, 90, 0.6)',
+          borderWidth: 1,
+          titleColor: textColor,
+          bodyColor: textColor,
+          titleFont: { family: "'Cinzel', serif", size: 11 },
+          bodyFont: { family: "'Lora', serif", size: 12 },
+        },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'week', displayFormats: { week: 'MMM d' } },
+          ...(xMin != null && { min: xMin, max: xMax }),
+          ticks: {
+            color: textColor,
+            font: { family: "'Lora', serif", size: 10 },
+            maxTicksLimit: 5,
+          },
+          grid: { color: gridColor },
+        },
+        y: {
+          min: 0,
+          ticks: {
+            color: textColor,
+            font: { family: "'Lora', serif", size: 10 },
+            maxTicksLimit: 4,
+          },
+          grid: { color: gridColor },
+        },
+      },
+    },
+  });
+
+  cardCharts.set(wlId, chart);
 }
 
 // ---------------------------------------------------------------------------
