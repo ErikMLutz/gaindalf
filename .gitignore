@@ -22,3 +22,6 @@ dist/
 .idea/
 .vscode/
 *.swp
+
+# secrets
+.envrc
