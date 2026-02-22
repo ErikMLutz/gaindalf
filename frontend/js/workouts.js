@@ -278,7 +278,7 @@ function buildLiftCard(wl) {
 
   const sets = wl.sets || [];
   sets.forEach((set) => {
-    const row = buildSetRow(set);
+    const row = buildSetRow(set, wl.id, wl.lift_id);
     tbody.appendChild(row);
   });
 
@@ -308,7 +308,7 @@ function buildLiftCard(wl) {
   addSetBtn.addEventListener('click', async () => {
     try {
       const newSet = await api.addSet(wl.id, {});
-      const row = buildSetRow(newSet);
+      const row = buildSetRow(newSet, wl.id, wl.lift_id);
       tbody.appendChild(row);
     } catch (err) {
       console.error('Failed to add set:', err);
@@ -325,7 +325,7 @@ function buildLiftCard(wl) {
 // Set row
 // ---------------------------------------------------------------------------
 
-function buildSetRow(set) {
+function buildSetRow(set, wlId, liftId) {
   const tr = document.createElement('tr');
   tr.dataset.setId = set.id;
 
@@ -379,6 +379,7 @@ function buildSetRow(set) {
     try {
       await api.updateSet(set.id, { reps, weight });
       showSaved();
+      if (wlId != null && liftId != null) renderCardChart(wlId, liftId);
     } catch (err) {
       console.error('Failed to save set:', err);
     }
@@ -444,6 +445,13 @@ async function renderCardChart(wlId, liftId) {
     );
     xMin = currentTs - halfSpan - DAY_MS;
     xMax = currentTs + halfSpan + DAY_MS;
+  }
+
+  // Destroy any existing chart on this canvas before recreating
+  const existing = cardCharts.get(wlId);
+  if (existing) {
+    existing.destroy();
+    cardCharts.delete(wlId);
   }
 
   const chart = new window.Chart(canvas, {
