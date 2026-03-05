@@ -43,7 +43,7 @@ function showEmptyState() {
   const editor = document.getElementById('workout-editor');
   if (!editor) return;
   editor.innerHTML =
-    '<p class="empty-state">No workouts yet. <button class="btn-primary" id="create-first-btn">Create your first workout</button></p>';
+    '<div style="text-align:center"><p class="empty-state">No workouts yet.</p><button class="btn-primary" id="create-first-btn">Create your first workout</button></div>';
   document.getElementById('create-first-btn').addEventListener('click', async () => {
     try {
       const w = await api.createWorkout();
