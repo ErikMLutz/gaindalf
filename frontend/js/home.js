@@ -30,6 +30,16 @@ async function renderProgressChart() {
   // Flat baseline across the full date range (or empty if no data)
   const baselineValues = data.map(() => 1.0);
 
+  function yBounds(values) {
+    const vals = values.filter((v) => v != null);
+    if (!vals.length) return {};
+    const lo = Math.min(...vals);
+    const hi = Math.max(...vals);
+    const range = hi - lo;
+    const pad = range > 0 ? range * 0.25 : Math.abs(hi) * 0.1 || 0.1;
+    return { min: lo - pad, max: hi + pad };
+  }
+
   const textColor = '#5c4a1e';
   const gridColor = 'rgba(196, 165, 90, 0.3)';
 
@@ -121,7 +131,7 @@ async function renderProgressChart() {
           grid: { color: gridColor },
         },
         y: {
-          min: 0,
+          ...yBounds([...strengthValues, ...enduranceValues, ...baselineValues]),
           ticks: { color: textColor, font: { family: "'Lora', serif", size: 11 } },
           grid: { color: gridColor },
         },

@@ -16,6 +16,7 @@ class SetRead(SQLModel):
     set_number: int
     reps: int | None
     weight: float | None
+    done: bool
 
 
 class SetCreate(SQLModel):
@@ -26,6 +27,7 @@ class SetCreate(SQLModel):
 class SetUpdate(SQLModel):
     reps: int | None = None
     weight: float | None = None
+    done: bool | None = None
 
 
 @router.post("/workout-lifts/{wl_id}/sets", response_model=SetRead, status_code=201)
@@ -58,6 +60,8 @@ def update_set(set_id: int, body: SetUpdate, session: SessionDep):
         workout_set.reps = body.reps
     if body.weight is not None:
         workout_set.weight = body.weight
+    if body.done is not None:
+        workout_set.done = body.done
 
     session.add(workout_set)
     session.commit()

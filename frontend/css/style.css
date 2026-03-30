@@ -1062,6 +1062,22 @@ a:hover {
   border-bottom: none;
 }
 
+.set-done-check {
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+}
+
+.set-done td {
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.set-done .set-done-check {
+  opacity: 1;
+}
+
 /* Workout header — date + subtitle inline */
 .workout-header {
   display: flex;

@@ -117,10 +117,11 @@ export const api = {
       weight,
     })),
 
-  updateSet: (setId, { reps, weight }) =>
+  updateSet: (setId, { reps, weight, done }) =>
     request(`${BASE}/sets/${setId}`, jsonBody('PATCH', {
       ...(reps !== undefined && { reps }),
       ...(weight !== undefined && { weight }),
+      ...(done !== undefined && { done }),
     })),
 
   deleteSet: (setId) =>

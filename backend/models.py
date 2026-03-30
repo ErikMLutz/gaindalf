@@ -38,6 +38,7 @@ class WorkoutSet(SQLModel, table=True):
     set_number: int
     reps: int | None = None
     weight: float | None = None  # stored in kg
+    done: bool = Field(default=False)
 
 
 class MuscleGroupConflict(SQLModel, table=True):

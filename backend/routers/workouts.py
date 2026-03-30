@@ -22,6 +22,7 @@ class SetRead(SQLModel):
     set_number: int
     reps: int | None
     weight: float | None
+    done: bool
 
 
 class WorkoutLiftRead(SQLModel):
@@ -97,6 +98,7 @@ def _build_workout_read(workout: Workout, session: Session) -> WorkoutRead:
                 set_number=s.set_number,
                 reps=s.reps,
                 weight=s.weight,
+                done=s.done,
             )
             for s in sets_db
         ]
@@ -255,7 +257,8 @@ def update_workout_lift(id: int, wl_id: int, body: WorkoutLiftUpdate, session: S
     lift_name = lift.name if lift else ""
     sets_db = session.exec(select(WorkoutSet).where(WorkoutSet.workout_lift_id == wl.id)).all()
     sets = [
-        SetRead(id=s.id, set_number=s.set_number, reps=s.reps, weight=s.weight) for s in sets_db
+        SetRead(id=s.id, set_number=s.set_number, reps=s.reps, weight=s.weight, done=s.done)
+        for s in sets_db
     ]
     previous_notes = _get_previous_notes(wl.lift_id, wl.id, session)
     return WorkoutLiftRead(
@@ -308,6 +311,7 @@ def suggest_lift_for_workout(workout_id: int, session: SessionDep):
                 set_number=s.set_number,
                 reps=s.reps,
                 weight=s.weight,
+                done=False,
             )
             for s in result.previous_sets
         ],

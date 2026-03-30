@@ -12,11 +12,15 @@ with engine.connect() as _conn:
 
 def _run_migrations(engine) -> None:
     with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE workoutlift ADD COLUMN notes TEXT NOT NULL DEFAULT ''"))
-            conn.commit()
-        except Exception:
-            pass  # column already exists
+        for stmt in [
+            "ALTER TABLE workoutlift ADD COLUMN notes TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE workoutset ADD COLUMN done INTEGER NOT NULL DEFAULT 0",
+        ]:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
 
 
 def create_db_and_tables() -> None:

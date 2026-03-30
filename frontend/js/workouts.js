@@ -270,7 +270,7 @@ function buildLiftCard(wl) {
   table.className = 'sets-table';
 
   const thead = document.createElement('thead');
-  thead.innerHTML = '<tr><th>Set</th><th>Reps</th><th>Weight (lbs)</th><th></th></tr>';
+  thead.innerHTML = '<tr><th>Set</th><th>Reps</th><th>Weight (lbs)</th><th></th><th></th></tr>';
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
@@ -418,9 +418,28 @@ function buildSetRow(set, wlId, liftId) {
   repsInput.addEventListener('input', debouncedSave);
   weightInput.addEventListener('input', debouncedSave);
 
+  // Done checkbox cell
+  const tdDone = document.createElement('td');
+  const doneCheck = document.createElement('input');
+  doneCheck.type = 'checkbox';
+  doneCheck.className = 'set-done-check';
+  doneCheck.title = 'Mark set done';
+  doneCheck.checked = !!set.done;
+  if (doneCheck.checked) tr.classList.add('set-done');
+  doneCheck.addEventListener('change', async () => {
+    tr.classList.toggle('set-done', doneCheck.checked);
+    try {
+      await api.updateSet(set.id, { done: doneCheck.checked });
+    } catch (err) {
+      console.error('Failed to save set done state:', err);
+    }
+  });
+  tdDone.appendChild(doneCheck);
+
   tr.appendChild(tdNum);
   tr.appendChild(tdReps);
   tr.appendChild(tdWeight);
+  tr.appendChild(tdDone);
   tr.appendChild(tdDelete);
 
   return tr;
@@ -453,6 +472,16 @@ async function renderCardChart(wlId, liftId) {
   const strengthValues = data.map((d) => d.strength_index ?? null);
   const enduranceValues = data.map((d) => d.endurance_index ?? null);
   const currentId = currentWorkoutId;
+
+  function yBounds(values) {
+    const vals = values.filter((v) => v != null);
+    if (!vals.length) return {};
+    const lo = Math.min(...vals);
+    const hi = Math.max(...vals);
+    const range = hi - lo;
+    const pad = range > 0 ? range * 0.25 : Math.abs(hi) * 0.1 || 0.1;
+    return { min: lo - pad, max: hi + pad };
+  }
 
   const textColor = '#5c4a1e';
   const gridColor = 'rgba(196, 165, 90, 0.3)';
@@ -554,7 +583,7 @@ async function renderCardChart(wlId, liftId) {
           grid: { color: gridColor },
         },
         y: {
-          min: 0,
+          ...yBounds([...strengthValues, ...enduranceValues]),
           ticks: {
             color: textColor,
             font: { family: "'Lora', serif", size: 10 },
