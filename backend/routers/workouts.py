@@ -30,6 +30,8 @@ class WorkoutLiftRead(SQLModel):
     lift_name: str
     display_order: int
     sets: list[SetRead]
+    notes: str
+    previous_notes: str | None
 
 
 class WorkoutRead(SQLModel):
@@ -60,9 +62,23 @@ class AddLiftBody(SQLModel):
     display_order: int = 0
 
 
+class WorkoutLiftUpdate(SQLModel):
+    notes: str
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _get_previous_notes(lift_id: int, current_wl_id: int, session: Session) -> str | None:
+    wls = session.exec(
+        select(WorkoutLift).where(WorkoutLift.lift_id == lift_id, WorkoutLift.id != current_wl_id)
+    ).all()
+    if not wls:
+        return None
+    best = max(wls, key=lambda wl: session.get(Workout, wl.workout_id).date)
+    return best.notes or None
 
 
 def _build_workout_read(workout: Workout, session: Session) -> WorkoutRead:
@@ -84,6 +100,7 @@ def _build_workout_read(workout: Workout, session: Session) -> WorkoutRead:
             )
             for s in sets_db
         ]
+        previous_notes = _get_previous_notes(wl.lift_id, wl.id, session)
         workout_lift_reads.append(
             WorkoutLiftRead(
                 id=wl.id,
@@ -91,6 +108,8 @@ def _build_workout_read(workout: Workout, session: Session) -> WorkoutRead:
                 lift_name=lift_name,
                 display_order=wl.display_order,
                 sets=sets,
+                notes=wl.notes,
+                previous_notes=previous_notes,
             )
         )
 
@@ -211,12 +230,42 @@ def add_lift_to_workout(id: int, body: AddLiftBody, session: SessionDep):
     session.add(wl)
     session.commit()
     session.refresh(wl)
+    previous_notes = _get_previous_notes(wl.lift_id, wl.id, session)
     return WorkoutLiftRead(
         id=wl.id,
         lift_id=wl.lift_id,
         lift_name=lift.name,
         display_order=wl.display_order,
         sets=[],
+        notes="",
+        previous_notes=previous_notes,
+    )
+
+
+@router.patch("/{id}/lifts/{wl_id}", response_model=WorkoutLiftRead)
+def update_workout_lift(id: int, wl_id: int, body: WorkoutLiftUpdate, session: SessionDep):
+    wl = session.get(WorkoutLift, wl_id)
+    if wl is None or wl.workout_id != id:
+        raise HTTPException(status_code=404, detail="WorkoutLift not found")
+    wl.notes = body.notes
+    session.add(wl)
+    session.commit()
+    session.refresh(wl)
+    lift = session.get(Lift, wl.lift_id)
+    lift_name = lift.name if lift else ""
+    sets_db = session.exec(select(WorkoutSet).where(WorkoutSet.workout_lift_id == wl.id)).all()
+    sets = [
+        SetRead(id=s.id, set_number=s.set_number, reps=s.reps, weight=s.weight) for s in sets_db
+    ]
+    previous_notes = _get_previous_notes(wl.lift_id, wl.id, session)
+    return WorkoutLiftRead(
+        id=wl.id,
+        lift_id=wl.lift_id,
+        lift_name=lift_name,
+        display_order=wl.display_order,
+        sets=sets,
+        notes=wl.notes,
+        previous_notes=previous_notes,
     )
 
 
@@ -236,8 +285,8 @@ from backend.services.algorithm import suggest_lift  # noqa: E402
 
 
 class SuggestResponse(SQLModel):
-    muscle_group_id: int
-    muscle_group_name: str
+    muscle_group_id: int | None
+    muscle_group_name: str | None
     lift_id: int
     lift_name: str
     previous_sets: list[SetRead]

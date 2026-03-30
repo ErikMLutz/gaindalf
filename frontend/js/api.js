@@ -101,6 +101,9 @@ export const api = {
   removeWorkoutLift: (workoutId, wlId) =>
     request(`${BASE}/workouts/${workoutId}/lifts/${wlId}`, { method: 'DELETE' }),
 
+  updateWorkoutLift: (workoutId, wlId, data) =>
+    request(`${BASE}/workouts/${workoutId}/lifts/${wlId}`, jsonBody('PATCH', data)),
+
   suggestLift: (workoutId) =>
     request(`${BASE}/workouts/${workoutId}/suggest`, { method: 'POST' }),
 

@@ -1162,6 +1162,34 @@ a:hover {
   }
 }
 
+.lift-card-prev-notes {
+  font-style: italic;
+  color: var(--ink-muted, #8a7a55);
+  font-size: 0.82rem;
+  margin: 0.5rem 0 0.25rem;
+  line-height: 1.4;
+}
+
+.lift-card-notes {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--parchment);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  min-height: 3rem;
+  outline: none;
+}
+
+.lift-card-notes:focus {
+  border-color: var(--gold);
+}
+
 /* Manual lift-add row inside workout footer */
 .add-lift-wrap {
   display: inline-flex;

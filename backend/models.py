@@ -29,6 +29,7 @@ class WorkoutLift(SQLModel, table=True):
     workout_id: int = Field(foreign_key="workout.id")
     lift_id: int = Field(foreign_key="lift.id")
     display_order: int = 0
+    notes: str = Field(default="")
 
 
 class WorkoutSet(SQLModel, table=True):

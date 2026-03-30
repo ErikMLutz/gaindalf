@@ -284,6 +284,29 @@ function buildLiftCard(wl) {
 
   table.appendChild(tbody);
   tableCol.appendChild(table);
+
+  if (wl.previous_notes) {
+    const prevNotes = document.createElement('p');
+    prevNotes.className = 'lift-card-prev-notes';
+    prevNotes.textContent = wl.previous_notes;
+    tableCol.appendChild(prevNotes);
+  }
+
+  const notesArea = document.createElement('textarea');
+  notesArea.className = 'lift-card-notes';
+  notesArea.placeholder = 'Notes\u2026';
+  notesArea.value = wl.notes || '';
+  const debouncedNotesSave = debounce(async () => {
+    try {
+      await api.updateWorkoutLift(currentWorkoutId, wl.id, { notes: notesArea.value });
+      showSaved();
+    } catch (err) {
+      console.error('Failed to save notes:', err);
+    }
+  }, 500);
+  notesArea.addEventListener('input', debouncedNotesSave);
+  tableCol.appendChild(notesArea);
+
   body.appendChild(tableCol);
 
   // Right column: chart
@@ -307,7 +330,14 @@ function buildLiftCard(wl) {
   addSetBtn.textContent = '+ Set';
   addSetBtn.addEventListener('click', async () => {
     try {
-      const newSet = await api.addSet(wl.id, {});
+      // Copy reps/weight from the last set if one exists
+      const lastRow = tbody.querySelector('tr:last-child');
+      const repsVal = lastRow?.querySelector('.reps-input')?.value.trim();
+      const weightVal = lastRow?.querySelector('.weight-input')?.value.trim();
+      const reps = repsVal ? parseInt(repsVal, 10) : null;
+      // Weight input displays lbs; API stores kg
+      const weight = weightVal ? parseFloat(weightVal) / 2.20462 : null;
+      const newSet = await api.addSet(wl.id, { reps, weight });
       const row = buildSetRow(newSet, wl.id, wl.lift_id);
       tbody.appendChild(row);
     } catch (err) {
@@ -350,7 +380,7 @@ function buildSetRow(set, wlId, liftId) {
   weightInput.className = 'editable-number weight-input';
   weightInput.type = 'number';
   weightInput.min = '0';
-  weightInput.step = '2.5';
+  weightInput.step = '5';
   if (set.weight != null) weightInput.value = Math.round(set.weight * 2.20462 * 10) / 10;
   weightInput.placeholder = '\u2014';
   tdWeight.appendChild(weightInput);
@@ -570,10 +600,12 @@ async function handleAutoMagicAdd() {
     await loadWorkout(currentWorkoutId);
   } catch (err) {
     console.error('Auto magic add failed:', err);
-    // Re-enable button so user can try again
     if (btn) {
       btn.disabled = false;
       btn.textContent = '\u2726 Auto Magic Add';
+    }
+    if (err.message && err.message.includes('409')) {
+      showError('All lifts are already in this workout.');
     }
   }
 }
