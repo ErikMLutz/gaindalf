@@ -1706,3 +1706,82 @@ dialog.dialog-compact {
     display: none; /* hide title on very small screens to preserve nav space */
   }
 }
+
+/* -----------------------------------------------------------------------------
+   Training Calendar
+   ----------------------------------------------------------------------------- */
+
+.cal-months-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 1.2rem 1rem;
+}
+
+.cal-month-title {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-gold);
+  margin-bottom: 0.45rem;
+  text-align: center;
+}
+
+.cal-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-dow-hdr {
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  color: var(--ink-muted);
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+.cal-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+}
+
+.cal-day-blank {
+  pointer-events: none;
+}
+
+.cal-day-circle {
+  width: 75%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(196, 165, 90, 0.28);
+  background: transparent;
+  transition: transform var(--transition);
+}
+
+.cal-day-workout .cal-day-circle {
+  border: none;
+  background: radial-gradient(
+    circle at 40% 35%,
+    #ffe480 0%,
+    #e07818 50%,
+    #8b1a1a 100%
+  );
+  box-shadow:
+    0 0 5px 1px rgba(220, 100, 20, 0.55),
+    0 0 2px rgba(255, 220, 80, 0.65);
+}
+
+.cal-day-workout {
+  cursor: pointer;
+}
+
+.cal-day-workout:hover .cal-day-circle {
+  transform: scale(1.25);
+  box-shadow:
+    0 0 9px 3px rgba(220, 100, 20, 0.7),
+    0 0 4px rgba(255, 220, 80, 0.9);
+}

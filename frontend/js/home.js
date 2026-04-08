@@ -140,6 +140,89 @@ async function renderProgressChart() {
   });
 }
 
+async function renderYearCalendar() {
+  const container = document.getElementById('year-calendar');
+  if (!container) return;
+
+  let workouts = [];
+  try {
+    workouts = await api.getWorkouts();
+  } catch (err) {
+    console.error('Failed to load workouts for calendar:', err);
+  }
+
+  // Map date string -> workout id for click navigation
+  const workoutByDate = new Map(workouts.map((w) => [w.date, w.id]));
+
+  const year = new Date().getFullYear();
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+  container.innerHTML = '';
+
+  const grid = document.createElement('div');
+  grid.className = 'cal-months-grid';
+
+  for (let m = 0; m < 12; m++) {
+    const monthEl = document.createElement('div');
+    monthEl.className = 'cal-month';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'cal-month-title';
+    titleEl.textContent = monthNames[m];
+    monthEl.appendChild(titleEl);
+
+    const daysGrid = document.createElement('div');
+    daysGrid.className = 'cal-days-grid';
+
+    dayNames.forEach((d) => {
+      const hdr = document.createElement('div');
+      hdr.className = 'cal-dow-hdr';
+      hdr.textContent = d;
+      daysGrid.appendChild(hdr);
+    });
+
+    // Blank cells before the 1st
+    const firstDow = new Date(year, m, 1).getDay();
+    for (let i = 0; i < firstDow; i++) {
+      const blank = document.createElement('div');
+      blank.className = 'cal-day cal-day-blank';
+      daysGrid.appendChild(blank);
+    }
+
+    const daysInMonth = new Date(year, m + 1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const workoutId = workoutByDate.get(dateStr);
+
+      const dayEl = document.createElement('div');
+      dayEl.className = `cal-day${workoutId != null ? ' cal-day-workout' : ''}`;
+      dayEl.title = workoutId != null ? `${monthNames[m]} ${d} — workout` : `${monthNames[m]} ${d}`;
+
+      const circle = document.createElement('div');
+      circle.className = 'cal-day-circle';
+      dayEl.appendChild(circle);
+
+      if (workoutId != null) {
+        dayEl.addEventListener('click', () => {
+          document.dispatchEvent(new CustomEvent('open-workout', { detail: { workoutId } }));
+          document.querySelector('[data-tab="workouts"]').click();
+        });
+      }
+
+      daysGrid.appendChild(dayEl);
+    }
+
+    monthEl.appendChild(daysGrid);
+    grid.appendChild(monthEl);
+  }
+
+  container.appendChild(grid);
+}
+
 async function renderWorkoutHistory() {
   const container = document.getElementById('workout-history-list');
   if (!container) return;
@@ -246,6 +329,7 @@ async function renderWorkoutHistory() {
 
 export async function initHome() {
   await renderProgressChart();
+  await renderYearCalendar();
   await renderWorkoutHistory();
 
   document.getElementById('new-workout-home-btn')
@@ -267,5 +351,6 @@ export async function initHome() {
 // Called when the Home tab is re-activated (registered via registerTabRefresh in app.js)
 export async function refreshHome() {
   await renderProgressChart();
+  await renderYearCalendar();
   await renderWorkoutHistory();
 }
