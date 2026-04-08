@@ -158,7 +158,11 @@ function renderWorkout(workout) {
     })();
     if (!liftId) return;
     try {
-      await api.addLiftToWorkout(currentWorkoutId, { liftId, displayOrder: 0 });
+      const previousSets = await api.getLiftLastSets(liftId).catch(() => []);
+      const newWl = await api.addLiftToWorkout(currentWorkoutId, { liftId, displayOrder: 0 });
+      for (const s of previousSets) {
+        await api.addSet(newWl.id, { reps: s.reps, weight: s.weight });
+      }
       await loadWorkout(currentWorkoutId);
     } catch (err) {
       console.error('Failed to add lift:', err);
