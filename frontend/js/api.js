@@ -104,8 +104,10 @@ export const api = {
   updateWorkoutLift: (workoutId, wlId, data) =>
     request(`${BASE}/workouts/${workoutId}/lifts/${wlId}`, jsonBody('PATCH', data)),
 
-  suggestLift: (workoutId) =>
-    request(`${BASE}/workouts/${workoutId}/suggest`, { method: 'POST' }),
+  suggestLift: (workoutId, excludeLiftIds = []) => {
+    const qs = excludeLiftIds.length ? `?exclude=${excludeLiftIds.join(',')}` : '';
+    return request(`${BASE}/workouts/${workoutId}/suggest${qs}`, { method: 'POST' });
+  },
 
   // ---------------------------------------------------------------------------
   // Sets

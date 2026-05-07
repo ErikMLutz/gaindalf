@@ -184,13 +184,19 @@ def _get_previous_sets(lift_id: int, session: Session) -> list[SetData]:
 # ---------------------------------------------------------------------------
 
 
-def suggest_lift(workout_id: int, session: Session) -> SuggestResult:
+def suggest_lift(
+    workout_id: int,
+    session: Session,
+    extra_exclude_lift_ids: set[int] | None = None,
+) -> SuggestResult:
     """Suggest the next lift for a workout using the intelligent selection algorithm."""
     # Lifts already in this workout — never suggest a duplicate
     current_wls = session.exec(
         select(WorkoutLift).where(WorkoutLift.workout_id == workout_id)
     ).all()
     used_lift_ids = {wl.lift_id for wl in current_wls}
+    if extra_exclude_lift_ids:
+        used_lift_ids |= extra_exclude_lift_ids
 
     # All lifts not already in this workout
     all_lifts = session.exec(select(Lift)).all()

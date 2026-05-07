@@ -9,6 +9,7 @@ let currentWorkoutId = null;
 let allLifts = [];        // [{id, name, muscle_group_ids}]
 let allMuscleGroups = []; // [{id, name}]
 const cardCharts = new Map(); // wlId -> Chart.js instance
+const pendingRejected = new Map(); // wlId -> [liftId, ...] carried across re-magic re-renders
 
 // ---------------------------------------------------------------------------
 // Reference data
@@ -68,6 +69,11 @@ async function loadWorkout(workoutId) {
     return;
   }
   renderWorkout(workout);
+}
+
+async function loadWorkoutPreservingRejected(newWlId, rejectedLiftIds) {
+  pendingRejected.set(newWlId, [...rejectedLiftIds]);
+  await loadWorkout(currentWorkoutId);
 }
 
 function renderWorkout(workout) {
@@ -245,6 +251,43 @@ function buildLiftCard(wl) {
     titleDiv.appendChild(pillsDiv);
   }
 
+  // Accumulates lift IDs rejected via re-magic so they aren't suggested again.
+  // If this card was just created by a re-magic, inherit the previous rejected list.
+  const rejectedLiftIds = pendingRejected.get(wl.id) ?? [wl.lift_id];
+  pendingRejected.delete(wl.id);
+
+  const remagicBtn = document.createElement('button');
+  remagicBtn.className = 'remagic-lift-btn icon-btn';
+  remagicBtn.title = 'Re-magic: replace with next suggestion';
+  remagicBtn.textContent = '\u2726';
+  remagicBtn.addEventListener('click', async () => {
+    remagicBtn.disabled = true;
+    remagicBtn.textContent = '\u2026';
+    try {
+      // Suggest while this lift is still in the workout so it's excluded,
+      // plus pass all previously rejected lift IDs to avoid cycling
+      const result = await api.suggestLift(currentWorkoutId, rejectedLiftIds);
+      rejectedLiftIds.push(result.lift_id);
+      await api.removeWorkoutLift(currentWorkoutId, wl.id);
+      const newWl = await api.addLiftToWorkout(currentWorkoutId, {
+        liftId: result.lift_id,
+        displayOrder: 0,
+      });
+      for (const s of result.previous_sets) {
+        await api.addSet(newWl.id, { reps: s.reps, weight: s.weight });
+      }
+      // Re-render but preserve the rejected list on the new card
+      await loadWorkoutPreservingRejected(newWl.id, rejectedLiftIds);
+    } catch (err) {
+      console.error('Re-magic failed:', err);
+      remagicBtn.disabled = false;
+      remagicBtn.textContent = '\u2726';
+      if (err.message && err.message.includes('409')) {
+        showError('No more lifts to suggest.');
+      }
+    }
+  });
+
   const removeBtn = document.createElement('button');
   removeBtn.className = 'remove-lift-btn icon-btn';
   removeBtn.title = 'Remove lift';
@@ -258,8 +301,13 @@ function buildLiftCard(wl) {
     }
   });
 
+  const headerActions = document.createElement('div');
+  headerActions.className = 'lift-card-header-actions';
+  headerActions.appendChild(remagicBtn);
+  headerActions.appendChild(removeBtn);
+
   cardHeader.appendChild(titleDiv);
-  cardHeader.appendChild(removeBtn);
+  cardHeader.appendChild(headerActions);
   card.appendChild(cardHeader);
 
   // --- Body: two-column layout (table left, chart right) ---

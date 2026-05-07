@@ -1127,6 +1127,28 @@ a:hover {
   margin-bottom: 0.75rem;
 }
 
+.lift-card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+.remagic-lift-btn {
+  font-size: 1rem;
+  color: var(--accent-gold-light);
+}
+
+.remagic-lift-btn:hover {
+  color: var(--accent-gold);
+  background-color: rgba(139, 105, 20, 0.1);
+}
+
+.remagic-lift-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .lift-card-title {
   flex: 1;
   min-width: 0;

@@ -296,10 +296,16 @@ class SuggestResponse(SQLModel):
 
 
 @router.post("/{workout_id}/suggest", response_model=SuggestResponse, status_code=200)
-def suggest_lift_for_workout(workout_id: int, session: SessionDep):
+def suggest_lift_for_workout(workout_id: int, session: SessionDep, exclude: str = ""):
     if session.get(Workout, workout_id) is None:
         raise HTTPException(status_code=404, detail="Workout not found")
-    result = suggest_lift(workout_id, session)
+    extra_exclude: set[int] = set()
+    if exclude:
+        for part in exclude.split(","):
+            part = part.strip()
+            if part.isdigit():
+                extra_exclude.add(int(part))
+    result = suggest_lift(workout_id, session, extra_exclude_lift_ids=extra_exclude or None)
     return SuggestResponse(
         muscle_group_id=result.muscle_group_id,
         muscle_group_name=result.muscle_group_name,
